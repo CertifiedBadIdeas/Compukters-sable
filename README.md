@@ -21,7 +21,7 @@ To build without the main sources, use `./gradlew build -PcompuktersDependencyMo
 This downloads the exact public GitHub SDK selected by `compuktersRelease`, verifies its SHA256 and uses
 its local file repository. No GitHub token or external Compukters Maven service is needed.
 An unpacked SDK can be supplied with `-PcompuktersDependencyMode=release -PcompuktersSdkDirectory=/path/to/sdk`.
-The first SDK archive will be published with Compukters 0.6.0; use workspace mode until then.
+The first SDK archive will be published with Compukters 0.5.1; use workspace mode until then.
 There is no automatic fallback between source and released dependencies.
 
 Only pushed version tags publish this addon. Its release contains the production JAR, named development JAR,
