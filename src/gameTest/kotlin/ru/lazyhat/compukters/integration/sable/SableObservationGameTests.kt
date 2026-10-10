@@ -38,6 +38,9 @@ import net.neoforged.neoforge.event.RegisterGameTestsEvent
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate
 import ru.lazyhat.compukters.impl.registry.CompuktersRegistry
 import ru.lazyhat.compukters.minecraft.computer.ComputerBlockEntity
+import ru.lazyhat.compukters.minecraft.computer.ComputerPeripheralIdentity
+import ru.lazyhat.compukters.minecraft.display.DisplayBlockEntity
+import ru.lazyhat.compukters.minecraft.peripheral.ComputerPeripheralNames
 import net.minecraft.util.Unit as MinecraftUnit
 
 @PrefixGameTestTemplate(false)
@@ -51,6 +54,14 @@ object SableObservationGameTests {
         helper.setBlock(relative, CompuktersRegistry.COMPUTER.get())
         helper.setBlock(relative.below(), Blocks.STONE)
         val original = helper.getBlockEntity(relative) as ComputerBlockEntity
+        val displayPosition = anchor.north(4)
+        // Sable splits disconnected clusters on tick; keep the fixture as one physical construction.
+        val supports = (0..4).map { anchor.below().north(it) }
+        supports.forEach { level.setBlockAndUpdate(it, Blocks.STONE.defaultBlockState()) }
+        level.setBlockAndUpdate(displayPosition, CompuktersRegistry.DISPLAY.get().defaultBlockState())
+        SablePeripheralNetworkFixtures.bind(helper, listOf(anchor, displayPosition))
+        ComputerPeripheralNames.setName(level, ComputerPeripheralIdentity("compukters-display", displayPosition, "text"), "sable-screen")
+        val displayId = requireNotNull((level.getBlockEntity(displayPosition) as DisplayBlockEntity).screenIdentity())
         val identity = original.computerId()
         val container = requireNotNull(SubLevelContainer.getContainer(level))
         val physics = container.physicsSystem()
@@ -72,18 +83,26 @@ object SableObservationGameTests {
                 originalMachine = original.terminalMachineId
             }.thenExecute {
                 helper.assertTrue(SablePhysicsSnapshots.read(level, anchor) == null, "world computer unexpectedly has a physics snapshot")
+                helper.assertTrue(
+                    level.getBlockEntity(displayPosition) is DisplayBlockEntity,
+                    "source display disappeared before assembly: ${level.getBlockState(displayPosition)}",
+                )
                 body =
                     SubLevelAssemblyHelper.assembleBlocks(
                         level,
                         anchor,
-                        listOf(anchor, anchor.below()),
-                        BoundingBox3i(anchor.x, anchor.y - 1, anchor.z, anchor.x + 1, anchor.y + 1, anchor.z + 1),
+                        listOf(anchor, displayPosition) + supports,
+                        BoundingBox3i(anchor.x, anchor.y - 1, anchor.z - 4, anchor.x + 1, anchor.y + 1, anchor.z + 1),
                     )
                 container.addForceLoadTicket(requireNotNull(body), SubLevelLoadingTicketType.COMMAND_FORCED, MinecraftUnit.INSTANCE)
                 helper.assertTrue(original.isRemoved, "assembly did not retire the source block entity")
                 val assembledPosition = requireNotNull(body).plot.centerBlock
                 currentPosition = assembledPosition
                 helper.assertTrue(level.getBlockEntity(assembledPosition) is ComputerBlockEntity, "computer was not copied during assembly")
+                helper.assertTrue(
+                    level.getBlockEntity(assembledPosition.north(4)) is DisplayBlockEntity,
+                    "display missing immediately after assembly: ${level.getBlockState(assembledPosition.north(4))}",
+                )
             }.thenWaitUntil {
                 val position = requireNotNull(body).plot.centerBlock
                 val moved = level.getBlockEntity(position) as? ComputerBlockEntity
@@ -93,6 +112,16 @@ object SableObservationGameTests {
                         "state=${level.getBlockState(position)}; buildHeight=${level.minBuildHeight}..${level.maxBuildHeight}",
                 )
                 helper.assertTrue(moved!!.computerId() == identity, "assembly changed ComputerId")
+                val movedDisplay = level.getBlockEntity(position.north(4)) as? DisplayBlockEntity
+                helper.assertTrue(
+                    movedDisplay != null,
+                    "assembled display missing at ${position.north(
+                        4,
+                    )}: state=${level.getBlockState(position.north(4))}, loaded=${level.hasChunkAt(position.north(4))}",
+                )
+                requireNotNull(movedDisplay)
+                helper.assertTrue(movedDisplay.screenIdentity() == displayId, "assembly changed screen identity")
+                helper.assertTrue(movedDisplay.displayColor(0, 0) == 0x123456, "assembly lost published screen pixels")
                 helper.assertTrue(moved.terminalMachineId != null, "moved computer did not acquire its existing filesystem/runtime")
                 helper.assertTrue(moved.terminalMachineId != originalMachine, "assembly retained the source runtime epoch")
                 val snapshot = SablePhysicsSnapshots.read(level, position)
@@ -109,13 +138,18 @@ object SableObservationGameTests {
                 SubLevelAssemblyHelper.moveBlocks(
                     level,
                     SubLevelAssemblyHelper.AssemblyTransform(position, anchor, 0, Rotation.NONE, level),
-                    listOf(position),
+                    listOf(position, position.north(4)),
                 )
                 currentPosition = anchor
             }.thenWaitUntil {
                 val restored = level.getBlockEntity(anchor) as? ComputerBlockEntity
                 helper.assertTrue(restored != null, "returned computer block entity is missing")
                 helper.assertTrue(restored!!.computerId() == identity, "return move changed ComputerId")
+                val returnedDisplay = level.getBlockEntity(displayPosition) as DisplayBlockEntity
+                helper.assertTrue(
+                    returnedDisplay.screenIdentity() == displayId && returnedDisplay.displayColor(0, 0) == 0x123456,
+                    "return lost screen identity or pixels",
+                )
                 helper.assertTrue(restored.terminalMachineId != null, "returned computer did not attach its runtime")
                 helper.assertTrue(SablePhysicsSnapshots.read(level, anchor) == null, "returned computer is still bound to a construction")
                 helper.assertTrue(requireNotNull(retained).constructionId == requireNotNull(body).uniqueId, "retained snapshot changed")
@@ -162,9 +196,12 @@ object SableObservationGameTests {
     private val SNAPSHOT_PROGRAM =
         """
         import sable.physics.Physics
+        import compukter.display.GraphicalDisplay
         import compukter.filesystem.FileSystem
         fun main(args: Array<String>) {
             check(FileSystem.readText("/home/survivor.txt") == "sable-files-survived")
+            val display = GraphicalDisplay.namedOrNull("sable-screen") ?: error("bound display unavailable")
+            display.pixel(0, 0, 0x123456)
             try {
                 val snapshot = Physics.snapshot()
                 check(snapshot.constructionId.length == 36)
@@ -191,5 +228,6 @@ object SableGameTestRegistration {
     fun register(event: RegisterGameTestsEvent) {
         event.register(SableObservationGameTests::class.java)
         event.register(SableHibernationGameTests::class.java)
+        event.register(SablePeripheralNetworkGameTests::class.java)
     }
 }

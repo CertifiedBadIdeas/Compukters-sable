@@ -24,6 +24,7 @@ import net.neoforged.fml.common.Mod
 class CompuktersSableMod {
     init {
         SableGuestIntegration.register()
+        SablePeripheralWorldPositions.register()
     }
 
     companion object {

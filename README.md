@@ -1,6 +1,6 @@
 # Compukters: Sable
 
-Independent construction pose and velocity observation for Minecraft 1.21.1.
+Construction pose and velocity observation and peripheral networks on Sable constructions for Minecraft 1.21.1.
 
 Installation, upstream versions, Guest Kotlin examples, device lifetime and development commands are maintained in the
 [canonical Wiki guide](https://certifiedbadideas.github.io/Compukters/SABLE/).
@@ -9,8 +9,6 @@ See [addon versioning](https://certifiedbadideas.github.io/Compukters/ADDON-DEVE
 for the independent `x.y` API/update version and Compukters target line in production JAR names. For combined
 Create/Sable/Propulsion and Aeronautics development, use the
 [all-addon stand](https://certifiedbadideas.github.io/Compukters/DEV-STAND/).
-
-
 ## Build dependencies
 
 Local co-development explicitly uses `compuktersDependencyMode=workspace`. In the pinned main workspace,
@@ -18,6 +16,7 @@ run `./gradlew stageAddonDevelopmentDependencies` in Compukters first, then buil
 For a separate checkout, pass `-PcompuktersWorkspace=/path/to/Compukters`.
 
 To build without the main sources, use `./gradlew build -PcompuktersDependencyMode=release`.
+Addon 1.1 requires the Compukters 0.6.0 SDK; use workspace mode until that base release is published.
 This downloads the exact public GitHub SDK selected by `compuktersRelease`, verifies its SHA256 and uses
 its local file repository. No GitHub token or external Compukters Maven service is needed.
 An unpacked SDK can be supplied with `-PcompuktersDependencyMode=release -PcompuktersSdkDirectory=/path/to/sdk`.

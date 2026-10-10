@@ -7,7 +7,10 @@ modId="compukters_sable"
 version="${addon_version}"
 displayName="Compukters: Sable"
 authors="lazyhat"
-description="Read-only physics observation adapter for Compukters."
+description="Physics observation and peripheral networks on Sable constructions for Compukters."
+
+[[mixins]]
+config="compukters_sable.mixins.json"
 
 [[dependencies.compukters_sable]]
 modId="neoforge"

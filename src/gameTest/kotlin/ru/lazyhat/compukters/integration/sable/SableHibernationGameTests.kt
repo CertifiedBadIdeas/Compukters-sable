@@ -76,7 +76,7 @@ object SableHibernationGameTests {
                 private fun cleanup() {
                     body?.let {
                         container.removeForceLoadTicket(it, SubLevelLoadingTicketType.COMMAND_FORCED, MinecraftUnit.INSTANCE)
-                        if (!it.isRemoved) container.removeSubLevel(it, SubLevelRemovalReason.REMOVED)
+                        if (container.getSubLevel(it.uniqueId) === it) container.removeSubLevel(it, SubLevelRemovalReason.REMOVED)
                     }
                 }
 
@@ -195,7 +195,10 @@ object SableHibernationGameTests {
         sequence
             .thenExecute {
                 container.removeForceLoadTicket(requireNotNull(body), SubLevelLoadingTicketType.COMMAND_FORCED, MinecraftUnit.INSTANCE)
-                container.removeSubLevel(requireNotNull(body), SubLevelRemovalReason.REMOVED)
+                val remaining = requireNotNull(body)
+                if (container.getSubLevel(remaining.uniqueId) === remaining) {
+                    container.removeSubLevel(remaining, SubLevelRemovalReason.REMOVED)
+                }
             }.thenSucceed()
     }
 
