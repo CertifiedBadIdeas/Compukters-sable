@@ -46,8 +46,9 @@ archives.archivesName.set(archiveBase)
 tasks.named<ProcessResources>("processResources") {
     inputs.property("addonVersion", addonVersion)
     inputs.property("compuktersVersionRange", compuktersRange)
+    val metadataValues = mapOf("addon_version" to addonVersion, "compukters_version_range" to compuktersRange)
     filesMatching("META-INF/neoforge.mods.toml") {
-        expand("addon_version" to addonVersion, "compukters_version_range" to compuktersRange)
+        expand(metadataValues)
     }
 }
 
