@@ -36,11 +36,36 @@ public data class PhysicsSnapshot(
     public val angularVelocity: PhysicsVector,
 )
 
+/** A tensor in plot axes about the center of mass; names identify row then column. */
+public data class PhysicsInertiaTensor(
+    public val xx: Double, public val xy: Double, public val xz: Double,
+    public val yx: Double, public val yy: Double, public val yz: Double,
+    public val zx: Double, public val zy: Double, public val zz: Double,
+)
+
+/**
+ * Last published upstream mass data, copied at the request's server tick.
+ * Mass uses Sable's kpg unit; the center uses plot coordinates and inertia uses kpg * m².
+ */
+public data class PhysicsMassProperties(
+    public val constructionId: String,
+    public val dimension: String,
+    public val gameTick: Long,
+    public val mass: Double,
+    public val centerOfMass: PhysicsVector,
+    public val inertiaTensor: PhysicsInertiaTensor,
+)
+
 public object Physics {
     /** Observes the computer's current construction; throws IllegalStateException when unavailable. */
     public fun snapshot(): PhysicsSnapshot = PhysicsBindings.snapshot()
+
+    /** Observes merged mass properties; throws IllegalStateException when unavailable or invalid. */
+    public fun massProperties(): PhysicsMassProperties = PhysicsBindings.massProperties()
 }
 
 private object PhysicsBindings {
     external fun snapshot(): PhysicsSnapshot
+
+    external fun massProperties(): PhysicsMassProperties
 }

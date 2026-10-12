@@ -28,16 +28,35 @@ import ru.lazyhat.compukters.api.addon.minecraft.CompuktersComputerContext
 
 /** Request-only adapter. No event handlers, body registry, cached feeds or subscriptions. */
 internal object SablePhysicsSnapshots {
+    fun readMassProperties(computer: CompuktersComputerContext): PhysicsMassProperties? =
+        readMassProperties(computer.level, computer.position)
+
+    fun readMassProperties(
+        level: ServerLevel,
+        position: BlockPos,
+    ): PhysicsMassProperties? {
+        val body = findConstruction(level, position) ?: return null
+        val data = body.massTracker ?: return null
+        return PhysicsMassProperties.copyOf(body.uniqueId, level.dimension().location().toString(), level.gameTime, data)
+    }
+
+    private fun findConstruction(
+        level: ServerLevel,
+        position: BlockPos,
+    ): ServerSubLevel? {
+        check(level.server.isSameThread) { "Sable snapshots must be copied on the server thread" }
+        if (!level.hasChunkAt(position)) return null
+        val body = Sable.HELPER.getContaining(level, position) as? ServerSubLevel ?: return null
+        return body.takeUnless { it.isRemoved }
+    }
+
     fun read(computer: CompuktersComputerContext): PhysicsSnapshot? = read(computer.level, computer.position)
 
     fun read(
         level: ServerLevel,
         position: BlockPos,
     ): PhysicsSnapshot? {
-        check(level.server.isSameThread) { "Sable snapshots must be copied on the server thread" }
-        if (!level.hasChunkAt(position)) return null
-        val body = Sable.HELPER.getContaining(level, position) as? ServerSubLevel ?: return null
-        if (body.isRemoved) return null
+        val body = findConstruction(level, position) ?: return null
         val system = checkNotNull(SubLevelContainer.getContainer(level)).physicsSystem()
         val handle = system.getPhysicsHandle(body)
         val linear = handle.getLinearVelocity(Vector3d())

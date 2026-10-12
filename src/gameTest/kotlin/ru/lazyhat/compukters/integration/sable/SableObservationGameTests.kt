@@ -70,6 +70,7 @@ object SableObservationGameTests {
         physics.setPaused(true)
         var body: ServerSubLevel? = null
         var retained: PhysicsSnapshot? = null
+        var retainedMass: PhysicsMassProperties? = null
         var originalMachine: Long? = null
         var currentPosition = anchor
         val guest = SableGuestComputerScenario(helper) { currentPosition }
@@ -129,6 +130,15 @@ object SableObservationGameTests {
                 helper.assertTrue(snapshot!!.constructionId == requireNotNull(body).uniqueId, "snapshot belongs to another construction")
                 helper.assertTrue(snapshot.linearVelocity.y.isFinite(), "invalid solver velocity")
                 retained = snapshot
+                val properties = SablePhysicsSnapshots.readMassProperties(level, position)
+                helper.assertTrue(properties != null, "construction mass data is not initialized")
+                requireNotNull(properties)
+                val upstream = requireNotNull(body).massTracker
+                helper.assertTrue(properties.mass == upstream.mass, "mass differs from merged upstream tracker")
+                helper.assertTrue(properties.centerOfMass.x == requireNotNull(upstream.centerOfMass).x(), "center uses wrong coordinates")
+                helper.assertTrue(properties.inertiaTensor.xy == upstream.inertiaTensor.m10(), "tensor axes are transposed")
+                helper.assertTrue(properties.inertiaTensor.xx > 0.0, "invalid construction inertia")
+                retainedMass = properties
             }
         guest.run(sequence, "inside")
         guest.awaitMarker(sequence, "sable-snapshot-ok")
@@ -153,6 +163,8 @@ object SableObservationGameTests {
                 helper.assertTrue(restored.terminalMachineId != null, "returned computer did not attach its runtime")
                 helper.assertTrue(SablePhysicsSnapshots.read(level, anchor) == null, "returned computer is still bound to a construction")
                 helper.assertTrue(requireNotNull(retained).constructionId == requireNotNull(body).uniqueId, "retained snapshot changed")
+                helper.assertTrue(SablePhysicsSnapshots.readMassProperties(level, anchor) == null, "world computer has mass data")
+                helper.assertTrue(requireNotNull(retainedMass).mass > 0.0, "retained mass data changed")
             }
         guest.run(sequence, "returned")
         guest.awaitMarker(sequence, "sable-unavailable-returned")
@@ -198,10 +210,16 @@ object SableObservationGameTests {
         import sable.physics.Physics
         import compukter.display.GraphicalDisplay
         import compukter.filesystem.FileSystem
+        import compukter.filesystem.Path
         fun main(args: Array<String>) {
-            check(FileSystem.readText("/home/survivor.txt") == "sable-files-survived")
+            check(FileSystem.readText(Path("/home/survivor.txt")) == "sable-files-survived")
             val display = GraphicalDisplay.namedOrNull("sable-screen") ?: error("bound display unavailable")
             display.pixel(0, 0, 0x123456)
+            if (args[0] != "inside") {
+                var unavailable = false
+                try { Physics.massProperties() } catch (failure: IllegalStateException) { unavailable = true }
+                check(unavailable)
+            }
             try {
                 val snapshot = Physics.snapshot()
                 check(snapshot.constructionId.length == 36)
@@ -213,6 +231,17 @@ object SableObservationGameTests {
                 check(snapshot.angularVelocity.y == snapshot.angularVelocity.y)
                 check(snapshot.orientation.w == snapshot.orientation.w)
                 check(snapshot.scale.x > 0.0)
+                val properties = Physics.massProperties()
+                check(properties.constructionId == snapshot.constructionId)
+                check(properties.dimension == snapshot.dimension)
+                check(properties.gameTick >= snapshot.gameTick)
+                check(properties.mass > 0.0)
+                check(properties.centerOfMass.x == properties.centerOfMass.x)
+                check(properties.centerOfMass.y == properties.centerOfMass.y)
+                check(properties.centerOfMass.z == properties.centerOfMass.z)
+                val tensor = properties.inertiaTensor
+                check(tensor.xx > 0.0 && tensor.yy > 0.0 && tensor.zz > 0.0)
+                check(tensor.xy == tensor.yx && tensor.xz == tensor.zx && tensor.yz == tensor.zy)
                 println("sable-snapshot-ok")
             } catch (error: IllegalStateException) {
                 println("sable-unavailable-" + args[0])

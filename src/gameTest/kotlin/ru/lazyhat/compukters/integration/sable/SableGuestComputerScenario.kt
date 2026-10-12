@@ -36,7 +36,8 @@ internal class SableGuestComputerScenario(
         awaitText(sequence, ">\n")
         writeFile(sequence, "compukter.toml", "format = 3\nname = \"sable-gametest\"\naddons = [\"sable\"]\n")
         writeFile(sequence, "survivor.txt", "sable-files-survived")
-        writeFile(sequence, "main.kt", source)
+        // The real editor repeats indentation on newline; these fixtures contain no significant leading whitespace.
+        writeFile(sequence, "main.kt", source.lines().joinToString("\n") { it.trimStart() })
         sequence.thenExecute { operation = command("kotlinc main.kt -o scenario") }
         awaitOperation(sequence)
         awaitText(sequence, "compiled: /home/scenario")

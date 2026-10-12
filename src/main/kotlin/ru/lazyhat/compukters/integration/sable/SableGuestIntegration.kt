@@ -27,6 +27,8 @@ import ru.lazyhat.compukters.api.addon.minecraft.CompuktersComputerContext
 import ru.lazyhat.compukters.lang.runtime.vm.HostFailureKind
 import sable.SableAddonContract
 import sable.SableCapabilityHandler
+import sable.PhysicsInertiaTensor as GuestTensor
+import sable.PhysicsMassProperties as GuestMassProperties
 import sable.PhysicsRotation as GuestRotation
 import sable.PhysicsSnapshot as GuestSnapshot
 import sable.PhysicsVector as GuestVector
@@ -44,6 +46,23 @@ private class SableHost(
     private val computer: CompuktersComputerContext,
 ) : SableCapabilityHandler {
     override fun checkpoint(): ByteArray = byteArrayOf()
+
+    override fun massProperties(): AddonCallResult<GuestMassProperties> {
+        val properties =
+            SablePhysicsSnapshots.readMassProperties(computer)
+                ?: return addonFailed(HostFailureKind.UNAVAILABLE, "Sable construction mass properties are unavailable")
+        val tensor = properties.inertiaTensor
+        return addonCompleted(
+            GuestMassProperties(
+                properties.constructionId.toString(),
+                properties.dimension,
+                properties.gameTick,
+                properties.mass,
+                properties.centerOfMass.toGuest(),
+                GuestTensor(tensor.xx, tensor.xy, tensor.xz, tensor.yx, tensor.yy, tensor.yz, tensor.zx, tensor.zy, tensor.zz),
+            ),
+        )
+    }
 
     override fun snapshot(): AddonCallResult<GuestSnapshot> {
         val snapshot =
