@@ -208,6 +208,9 @@ object SableObservationGameTests {
     private val SNAPSHOT_PROGRAM =
         """
         import sable.physics.Physics
+        import sable.physics.PhysicsSnapshot
+        import sable.physics.PhysicsMassProperties
+        import kotlin.math.Vector3d
         import compukter.display.GraphicalDisplay
         import compukter.filesystem.FileSystem
         import compukter.filesystem.Path
@@ -229,7 +232,7 @@ object SableObservationGameTests {
                 check(snapshot.position.x > -30000000.0 && snapshot.position.x < 30000000.0)
                 check(snapshot.linearVelocity.y == snapshot.linearVelocity.y)
                 check(snapshot.angularVelocity.y == snapshot.angularVelocity.y)
-                check(snapshot.orientation.w == snapshot.orientation.w)
+                check(snapshot.orientation.quaternion.w == snapshot.orientation.quaternion.w)
                 check(snapshot.scale.x > 0.0)
                 val properties = Physics.massProperties()
                 check(properties.constructionId == snapshot.constructionId)
@@ -240,8 +243,18 @@ object SableObservationGameTests {
                 check(properties.centerOfMass.y == properties.centerOfMass.y)
                 check(properties.centerOfMass.z == properties.centerOfMass.z)
                 val tensor = properties.inertiaTensor
-                check(tensor.xx > 0.0 && tensor.yy > 0.0 && tensor.zz > 0.0)
-                check(tensor.xy == tensor.yx && tensor.xz == tensor.zx && tensor.yz == tensor.zy)
+                check(tensor.m00 > 0.0 && tensor.m11 > 0.0 && tensor.m22 > 0.0)
+                check(tensor.m01 == tensor.m10 && tensor.m02 == tensor.m20 && tensor.m12 == tensor.m21)
+                val axis = Vector3d(1.0, 0.0, 0.0)
+                val transformed = snapshot.orientation.transform(axis)
+                val restored = snapshot.orientation.inverse().transform(transformed)
+                check(restored.x > 0.999999 && restored.x < 1.000001)
+                val product = tensor * axis
+                check(product.x == tensor.m00 && product.y == tensor.m10 && product.z == tensor.m20)
+                val boxedSnapshot: Any = snapshot
+                val boxedMass: Any = properties
+                check(boxedSnapshot is PhysicsSnapshot && (boxedSnapshot as PhysicsSnapshot).gameTick == snapshot.gameTick)
+                check(boxedMass is PhysicsMassProperties && (boxedMass as PhysicsMassProperties).mass == properties.mass)
                 println("sable-snapshot-ok")
             } catch (error: IllegalStateException) {
                 println("sable-unavailable-" + args[0])

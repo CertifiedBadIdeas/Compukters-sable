@@ -18,54 +18,70 @@
 
 package sable.physics
 
-public data class PhysicsVector(public val x: Double, public val y: Double, public val z: Double)
-
-public data class PhysicsRotation(public val x: Double, public val y: Double, public val z: Double, public val w: Double)
+import kotlin.math.Matrix3d
+import kotlin.math.Quaterniond
+import kotlin.math.Rotation3d
+import kotlin.math.Vector3d
 
 /** An immutable observation copied at the request's server tick. */
-public data class PhysicsSnapshot(
+public value class PhysicsSnapshot(
     public val constructionId: String,
     public val dimension: String,
     public val gameTick: Long,
     public val paused: Boolean,
-    public val position: PhysicsVector,
-    public val orientation: PhysicsRotation,
-    public val scale: PhysicsVector,
-    public val rotationPoint: PhysicsVector,
-    public val linearVelocity: PhysicsVector,
-    public val angularVelocity: PhysicsVector,
-)
-
-/** A tensor in plot axes about the center of mass; names identify row then column. */
-public data class PhysicsInertiaTensor(
-    public val xx: Double, public val xy: Double, public val xz: Double,
-    public val yx: Double, public val yy: Double, public val yz: Double,
-    public val zx: Double, public val zy: Double, public val zz: Double,
+    public val position: Vector3d,
+    public val orientation: Rotation3d,
+    public val scale: Vector3d,
+    public val rotationPoint: Vector3d,
+    public val linearVelocity: Vector3d,
+    public val angularVelocity: Vector3d,
 )
 
 /**
  * Last published upstream mass data, copied at the request's server tick.
- * Mass uses Sable's kpg unit; the center uses plot coordinates and inertia uses kpg * m².
+ * Mass uses Sable's kpg unit; the center uses plot coordinates.
+ * Inertia is a row-major Matrix3d in plot axes about the center of mass, in kpg * m².
  */
-public data class PhysicsMassProperties(
+public value class PhysicsMassProperties(
     public val constructionId: String,
     public val dimension: String,
     public val gameTick: Long,
     public val mass: Double,
-    public val centerOfMass: PhysicsVector,
-    public val inertiaTensor: PhysicsInertiaTensor,
+    public val centerOfMass: Vector3d,
+    public val inertiaTensor: Matrix3d,
 )
 
 public object Physics {
     /** Observes the computer's current construction; throws IllegalStateException when unavailable. */
-    public fun snapshot(): PhysicsSnapshot = PhysicsBindings.snapshot()
+    public fun snapshot(): PhysicsSnapshot {
+        val reply = PhysicsBindings.snapshot()
+        return PhysicsSnapshot(
+            reply.constructionId, reply.dimension, reply.gameTick, reply.paused,
+            reply.position, Rotation3d.fromQuaternion(reply.orientation), reply.scale,
+            reply.rotationPoint, reply.linearVelocity, reply.angularVelocity,
+        )
+    }
 
     /** Observes merged mass properties; throws IllegalStateException when unavailable or invalid. */
     public fun massProperties(): PhysicsMassProperties = PhysicsBindings.massProperties()
 }
 
+/** Raw quaternion crosses as unconstrained components; the public adapter validates the rotation. */
+internal value class PhysicsSnapshotReply(
+    public val constructionId: String,
+    public val dimension: String,
+    public val gameTick: Long,
+    public val paused: Boolean,
+    public val position: Vector3d,
+    public val orientation: Quaterniond,
+    public val scale: Vector3d,
+    public val rotationPoint: Vector3d,
+    public val linearVelocity: Vector3d,
+    public val angularVelocity: Vector3d,
+)
+
 private object PhysicsBindings {
-    external fun snapshot(): PhysicsSnapshot
+    external fun snapshot(): PhysicsSnapshotReply
 
     external fun massProperties(): PhysicsMassProperties
 }

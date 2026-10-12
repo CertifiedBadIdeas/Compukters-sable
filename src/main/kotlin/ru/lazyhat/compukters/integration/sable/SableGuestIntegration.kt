@@ -27,11 +27,11 @@ import ru.lazyhat.compukters.api.addon.minecraft.CompuktersComputerContext
 import ru.lazyhat.compukters.lang.runtime.vm.HostFailureKind
 import sable.SableAddonContract
 import sable.SableCapabilityHandler
-import sable.PhysicsInertiaTensor as GuestTensor
+import sable.Matrix3d as GuestTensor
 import sable.PhysicsMassProperties as GuestMassProperties
-import sable.PhysicsRotation as GuestRotation
-import sable.PhysicsSnapshot as GuestSnapshot
-import sable.PhysicsVector as GuestVector
+import sable.PhysicsSnapshotReply as GuestSnapshot
+import sable.Quaterniond as GuestRotation
+import sable.Vector3d as GuestVector
 
 internal object SableGuestIntegration {
     fun register() {

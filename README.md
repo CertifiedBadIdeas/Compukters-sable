@@ -16,7 +16,7 @@ run `./gradlew stageAddonDevelopmentDependencies` in Compukters first, then buil
 For a separate checkout, pass `-PcompuktersWorkspace=/path/to/Compukters`.
 
 To build without the main sources, use `./gradlew build -PcompuktersDependencyMode=release`.
-Addon 1.2 requires the Compukters 0.6.0 SDK; use workspace mode until that base release is published.
+Addon 2.0 requires the Compukters 0.6.0 SDK; use workspace mode until that base release is published.
 This downloads the exact public GitHub SDK selected by `compuktersRelease`, verifies its SHA256 and uses
 its local file repository. No GitHub token or external Compukters Maven service is needed.
 An unpacked SDK can be supplied with `-PcompuktersDependencyMode=release -PcompuktersSdkDirectory=/path/to/sdk`.
@@ -25,3 +25,8 @@ There is no automatic fallback between source and released dependencies.
 
 Only pushed version tags publish this addon. Its release contains the production JAR, named development JAR,
 Guest API bundle and SHA256 inventory. Ordinary commits produce no GitHub Releases.
+
+The Guest physics API uses value snapshots and the shared stdlib math types: `Vector3d` for vectors,
+`Rotation3d` for validated orientation and row-major `Matrix3d` for inertia. Read raw quaternion components
+through `snapshot.orientation.quaternion`; use tensor components `m00` through `m22` or matrix/vector operations.
+This replaces the earlier PhysicsVector, PhysicsRotation and PhysicsInertiaTensor API.
