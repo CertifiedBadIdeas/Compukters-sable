@@ -61,18 +61,22 @@ val verifyAddonVersioning = tasks.register("verifyAddonVersioning") {
     inputs.property("addonVersion", addonVersion)
     inputs.property("archiveBase", archiveBase)
     inputs.property("compuktersVersionRange", compuktersRange)
+    val checkedArchive = productionArchive.flatMap { it.archiveFile }
+    val expectedAddonVersion = addonVersion
+    val expectedArchiveBase = archiveBase
+    val expectedCompuktersRange = compuktersRange
     doLast {
-        val archive = productionArchive.get().archiveFile.get().asFile
-        check(archive.name == "$archiveBase-$addonVersion.jar") { "unexpected addon archive name: ${archive.name}" }
+        val archive = checkedArchive.get().asFile
+        check(archive.name == "$expectedArchiveBase-$expectedAddonVersion.jar") { "unexpected addon archive name: ${archive.name}" }
         ZipFile(archive).use { zip ->
             val metadata = zip.getInputStream(checkNotNull(zip.getEntry("META-INF/neoforge.mods.toml"))).bufferedReader().use { it.readText() }
             fun value(section: String, key: String): String? =
                 Regex("(?m)^${Regex.escape(key)}\\s*=\\s*\"([^\"]+)\"\\s*$").find(section)?.groupValues?.get(1)
             val sections = metadata.split(Regex("(?m)^\\[\\["))
             val mod = sections.single { it.startsWith("mods]]") }
-            check(value(mod, "version") == addonVersion) { "packaged addon version does not match $addonVersion" }
+            check(value(mod, "version") == expectedAddonVersion) { "packaged addon version does not match $expectedAddonVersion" }
             val dependency = sections.single { it.startsWith("dependencies.") && value(it, "modId") == "compukters" }
-            check(value(dependency, "versionRange") == compuktersRange) { "packaged Compukters dependency does not match $compuktersRange" }
+            check(value(dependency, "versionRange") == expectedCompuktersRange) { "packaged Compukters dependency does not match $expectedCompuktersRange" }
         }
     }
 }

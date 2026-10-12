@@ -148,9 +148,10 @@ val verifyPeripheralIntegrationJar = tasks.register("verifyPeripheralIntegration
     group = "verification"
     val archive = tasks.named<org.gradle.jvm.tasks.Jar>("remapJar")
     dependsOn(archive)
-    inputs.file(archive.flatMap { it.archiveFile })
+    val checkedArchive = archive.flatMap { it.archiveFile }
+    inputs.file(checkedArchive)
     doLast {
-        ZipFile(archive.get().archiveFile.get().asFile).use { zip ->
+        ZipFile(checkedArchive.get().asFile).use { zip ->
             val metadata = zip.getInputStream(requireNotNull(zip.getEntry("META-INF/neoforge.mods.toml")))
                 .bufferedReader().use { it.readText() }
             check(metadata.contains("config=\"compukters_sable.mixins.json\"")) { "Missing assembly mixin registration" }
