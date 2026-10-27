@@ -18,11 +18,13 @@ import net.minecraft.gametest.framework.GameTest
 import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.phys.Vec3
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate
 import ru.lazyhat.compukters.impl.registry.CompuktersRegistry
 import ru.lazyhat.compukters.minecraft.computer.ComputerPeripheralIdentity
+import ru.lazyhat.compukters.minecraft.display.AttachedDisplaySurfaces
 import ru.lazyhat.compukters.minecraft.display.DisplayAssembly
 import ru.lazyhat.compukters.minecraft.display.DisplayBlockEntity
 import ru.lazyhat.compukters.minecraft.peripheral.ComputerPeripheralLookup
@@ -39,6 +41,53 @@ import net.minecraft.util.Unit as MinecraftUnit
 
 @PrefixGameTestTemplate(false)
 object SablePeripheralNetworkGameTests {
+    @JvmStatic
+    @GameTest(batch = "surface-removal", template = "bastion/mobs/empty", templateNamespace = "minecraft")
+    fun permanentRemovalRetiresSurfacesButUnloadPreservesThem(helper: GameTestHelper) {
+        val level = helper.level
+        val shore = helper.absolutePos(BlockPos(2, 3, 2))
+        level.setBlockAndUpdate(shore, CompuktersRegistry.COMPUTER.get().defaultBlockState())
+        val container = requireNotNull(SubLevelContainer.getContainer(level))
+        val physics = container.physicsSystem()
+        val paused = physics.paused
+        physics.setPaused(true)
+        try {
+            for ((index, reason) in listOf(SubLevelRemovalReason.REMOVED, SubLevelRemovalReason.UNLOADED).withIndex()) {
+                val first = shore.offset(4, 0, index * 4)
+                val second = first.west()
+                listOf(first, second).forEach { level.setBlockAndUpdate(it, Blocks.OAK_PLANKS.defaultBlockState()) }
+                AttachedDisplaySurfaces.create(level, first, second, Direction.NORTH)
+                SablePeripheralNetworkFixtures.bind(helper, listOf(shore, first))
+                val name = "surface-$index"
+                ComputerPeripheralNames.setName(level, ComputerPeripheralIdentity("compukters-display", first, "text"), name)
+                val body =
+                    SubLevelAssemblyHelper.assembleBlocks(
+                        level,
+                        first,
+                        listOf(first, second),
+                        BoundingBox3i(first.x - 1, first.y, first.z, first.x + 1, first.y + 1, first.z + 1),
+                    )
+                body.updateMergedMassData(1.0f)
+
+                fun present() =
+                    PeripheralConfiguratorServer
+                        .inspect(
+                            level,
+                            PeripheralConfiguratorContext(shore, Direction.NORTH),
+                            PeripheralConfiguratorMode.INSPECT_NETWORK,
+                        ).entries
+                        .any { it.name == name }
+                helper.assertTrue(present(), "native assembly lost its attached display membership")
+                container.removeSubLevel(body, reason)
+                container.processSubLevelRemovals()
+                helper.assertTrue(present() == (reason == SubLevelRemovalReason.UNLOADED), "wrong saved display lifetime for $reason")
+            }
+            helper.succeed()
+        } finally {
+            physics.setPaused(paused)
+        }
+    }
+
     @JvmStatic
     @GameTest(batch = "peripheral-partial", template = "bastion/mobs/empty", templateNamespace = "minecraft")
     fun partialScreenTransfer(helper: GameTestHelper) {
@@ -109,7 +158,7 @@ object SablePeripheralNetworkGameTests {
         val stack = ItemStack(CompuktersRegistry.PERIPHERAL_CONFIGURATOR_ITEM.get())
         val item = stack.item as PeripheralConfiguratorItem
         player.setItemInHand(InteractionHand.MAIN_HAND, stack)
-        item.use(level, player, InteractionHand.MAIN_HAND)
+        item.selectMode(stack, 1)
         for (position in listOf(shore, onboard, other, first, second)) {
             player.setPos(Vec3.atCenterOf(position))
             val result = PeripheralConfiguratorServer.bind(player, InteractionHand.MAIN_HAND, position, Direction.NORTH)

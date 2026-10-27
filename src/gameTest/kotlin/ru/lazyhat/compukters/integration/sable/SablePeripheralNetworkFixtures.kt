@@ -33,7 +33,7 @@ internal object SablePeripheralNetworkFixtures {
         val stack = ItemStack(CompuktersRegistry.PERIPHERAL_CONFIGURATOR_ITEM.get())
         val item = stack.item as PeripheralConfiguratorItem
         player.setItemInHand(InteractionHand.MAIN_HAND, stack)
-        item.use(helper.level, player, InteractionHand.MAIN_HAND)
+        item.selectMode(stack, 1)
         for (position in positions) {
             player.setPos(requireNotNull(PeripheralWorldPositions.project(helper.level, Vec3.atCenterOf(position))))
             val result = PeripheralConfiguratorServer.bind(player, InteractionHand.MAIN_HAND, position, Direction.NORTH)

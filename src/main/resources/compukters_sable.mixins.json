@@ -3,6 +3,6 @@
   "minVersion": "0.8",
   "package": "ru.lazyhat.compukters.integration.sable.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["SubLevelAssemblyHelperMixin"],
+  "mixins": ["SubLevelAssemblyHelperMixin", "ServerSubLevelContainerMixin"],
   "injectors": {"defaultRequire": 1}
 }

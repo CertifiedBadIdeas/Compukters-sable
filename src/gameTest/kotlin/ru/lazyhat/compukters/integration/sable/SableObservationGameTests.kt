@@ -43,10 +43,11 @@ import ru.lazyhat.compukters.minecraft.display.DisplayBlockEntity
 import ru.lazyhat.compukters.minecraft.peripheral.ComputerPeripheralNames
 import net.minecraft.util.Unit as MinecraftUnit
 
+// The unthrottled GameTest clock must leave wall time for cold compiler processes.
 @PrefixGameTestTemplate(false)
 object SableObservationGameTests {
     @JvmStatic
-    @GameTest(template = "bastion/mobs/empty", templateNamespace = "minecraft", timeoutTicks = 100_000)
+    @GameTest(template = "bastion/mobs/empty", templateNamespace = "minecraft", timeoutTicks = 1_000_000)
     fun computerAssemblyAndReturn(helper: GameTestHelper) {
         val level = helper.level
         val relative = BlockPos(2, 3, 2)

@@ -41,14 +41,15 @@ import ru.lazyhat.compukters.impl.registry.CompuktersRegistry
 import ru.lazyhat.compukters.minecraft.computer.ComputerBlockEntity
 import net.minecraft.util.Unit as MinecraftUnit
 
+// The unthrottled GameTest clock must leave wall time for cold compiler processes.
 @PrefixGameTestTemplate(false)
 object SableHibernationGameTests {
     @JvmStatic
-    @GameTest(batch = "hibernation", template = "bastion/mobs/empty", templateNamespace = "minecraft", timeoutTicks = 100_000)
+    @GameTest(batch = "hibernation", template = "bastion/mobs/empty", templateNamespace = "minecraft", timeoutTicks = 1_000_000)
     fun livePhysicsHibernation(helper: GameTestHelper) = run(helper, 1)
 
     @JvmStatic
-    @GameTest(batch = "hibernation-multiple", template = "bastion/mobs/empty", templateNamespace = "minecraft", timeoutTicks = 100_000)
+    @GameTest(batch = "hibernation-multiple", template = "bastion/mobs/empty", templateNamespace = "minecraft", timeoutTicks = 1_000_000)
     fun twoComputersResumeWithLivePhysics(helper: GameTestHelper) = run(helper, 2)
 
     private fun run(

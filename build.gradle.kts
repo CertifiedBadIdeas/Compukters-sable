@@ -158,9 +158,10 @@ val verifyPeripheralIntegrationJar = tasks.register("verifyPeripheralIntegration
             val config = zip.getInputStream(requireNotNull(zip.getEntry("compukters_sable.mixins.json")))
                 .bufferedReader().use { it.readText() }
             val parsed = groovy.json.JsonSlurper().parseText(config) as Map<*, *>
-            check(parsed["required"] == true && parsed["mixins"] == listOf("SubLevelAssemblyHelperMixin"))
+            check(parsed["required"] == true && parsed["mixins"] == listOf("SubLevelAssemblyHelperMixin", "ServerSubLevelContainerMixin"))
             val prefix = "ru/lazyhat/compukters/integration/sable/"
             check(zip.getEntry(prefix + "mixin/SubLevelAssemblyHelperMixin.class") != null)
+            check(zip.getEntry(prefix + "mixin/ServerSubLevelContainerMixin.class") != null)
             check(zip.getEntry(prefix + "SablePeripheralWorldPositions.class") != null)
         }
     }
