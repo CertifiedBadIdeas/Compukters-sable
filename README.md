@@ -30,3 +30,13 @@ The Guest physics API uses value snapshots and the shared stdlib math types: `Ve
 `Rotation3d` for validated orientation and row-major `Matrix3d` for inertia. Read raw quaternion components
 through `snapshot.orientation.quaternion`; use tensor components `m00` through `m22` or matrix/vector operations.
 This replaces the earlier PhysicsVector, PhysicsRotation and PhysicsInertiaTensor API.
+
+## Declarative Guest contracts
+
+Guest API declarations live in `src/compuktersAddon/contracts`. The SDK generates the actual Guest Kotlin under
+`build/generated/sources/compuktersGuest/kotlin` and packages those sources with the executable `.cagb` image.
+Run `generateCompuktersGuestSources` to inspect the result. Check in `src/compuktersAddon/addon.lock` as ABI history;
+only `updateCompuktersAddonAbiLock` changes selectors/tombstones after an intentional contract edit.
+Unit-returning `@GuestCommand` methods get ordinary calls and batch command factories from the same declaration.
+The generated host validates declared parameter constraints and derives command eligibility.
+See the [SDK authoring guide](https://github.com/CertifiedBadIdeas/Compukters/blob/dev/docs/developers/addon-development.md).
