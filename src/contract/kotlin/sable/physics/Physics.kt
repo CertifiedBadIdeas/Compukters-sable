@@ -21,13 +21,13 @@ package sable.physics
 import ru.lazyhat.compukters.api.contracts.GuestRead
 import ru.lazyhat.compukters.api.contracts.GuestRecord
 import ru.lazyhat.compukters.api.contracts.GuestService
-import ru.lazyhat.compukters.api.contracts.types.Matrix3d
-import ru.lazyhat.compukters.api.contracts.types.Rotation3d
-import ru.lazyhat.compukters.api.contracts.types.Vector3d
+import kotlin.math.Matrix3d
+import kotlin.math.Rotation3d
+import kotlin.math.Vector3d
 
 /** An immutable observation copied at the request's server tick. */
 @GuestRecord
-data class PhysicsSnapshot(
+value class PhysicsSnapshot(
     val constructionId: String,
     val dimension: String,
     val gameTick: Long,
@@ -46,7 +46,7 @@ data class PhysicsSnapshot(
  * Inertia is a row-major Matrix3d in plot axes about the center of mass, in kpg * m².
  */
 @GuestRecord
-data class PhysicsMassProperties(
+value class PhysicsMassProperties(
     val constructionId: String,
     val dimension: String,
     val gameTick: Long,
